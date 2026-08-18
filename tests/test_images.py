@@ -35,3 +35,26 @@ def test_no_photos_returns_empty_list() -> None:
 
     urls = fetch_listing_images("m2404914283")
     assert urls == []
+
+
+@responses.activate
+def test_parse_current_absolute_image_urls() -> None:
+    responses.get(
+        "https://link.marktplaats.nl/m123456789",
+        status=200,
+        body="""
+            <script type="application/ld+json">
+            {
+                "@type": "Product",
+                "image": [
+                    "https://images.marktplaats.com/api/v1/images/real-photo",
+                    "https://cdn.example.invalid/placeholder.png"
+                ]
+            }
+            </script>
+        """,
+    )
+
+    assert fetch_listing_images("m123456789") == [
+        "https://images.marktplaats.com/api/v1/images/real-photo"
+    ]

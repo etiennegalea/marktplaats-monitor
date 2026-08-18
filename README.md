@@ -1,5 +1,50 @@
 # marktplaats-py
-A small Python package to request listings from marktplaats.nl. It supports python 3.10+.
+A Python package for requesting listings from marktplaats.nl, plus a native Rust
+desktop monitor for reviewing and matching listings on Windows, macOS, and Linux.
+
+## Native Rust desktop app
+
+The desktop monitor is implemented in Rust and compiles to a standalone native
+executable. It does not require Python, uv, or Tk at runtime.
+
+To run it from source, install the current stable Rust toolchain and use:
+
+```shell
+cargo run --release
+```
+
+To build a distributable executable:
+
+```shell
+cargo build --locked --release
+```
+
+The resulting file is:
+
+- Windows: `target/release/marktplaats-monitor.exe`
+- macOS/Linux: `target/release/marktplaats-monitor`
+
+Windows builds need the Visual Studio C++ Build Tools, macOS builds need the
+Xcode Command Line Tools, and Linux builds need a compiler plus the Wayland/X11
+development packages. The `rust-desktop.yml` GitHub Actions workflow builds and
+packages all three platform executables automatically. Download the artifact for
+your operating system from a completed workflow run and extract it before use.
+
+The native app includes polling with randomized minute intervals, crossed-off
+listing state, scrollable image previews, multiple conditions, reference-image
+matching and ranking, saved lists, and an error/activity log. It can migrate the
+existing Python GUI state from `~/.marktplaats-monitor/viewed.json` the first time
+it starts.
+
+**Search now** always starts a manual refresh immediately and does not wait for
+the automatic poll timer. Leave **Maximum listings** blank to fetch every result
+available from Marktplaats, or enter a limit; multi-page searches use randomized
+delays between requests. Results can be sorted by visual-match relevance,
+distance, the time the monitor first added them, or the listing creation date.
+
+## Python library
+
+The Python package supports Python 3.10+.
 
 ## Installing
 ```shell
@@ -60,6 +105,46 @@ for listing in listings:
 
     print("-----------------------------")
 ```
+
+## Listing monitor GUI
+
+An optional desktop monitor can repeatedly run a search, accumulate newly found
+listings, and show image previews. Search terms can be separated with spaces or
+commas, and multiple item conditions can be selected at once.
+
+You can keep a persistent stash of reference photos. The monitor compares every
+reference with up to ten photos from each listing, ranks results by the best
+visual-similarity percentage, and shows the closest reference beside the listing
+preview.
+
+Install the GUI extra and start the monitor:
+
+```shell
+pip install "marktplaats[gui]"
+marktplaats-monitor
+```
+
+Enter the search filters, use **Search now** for a single refresh, or enable
+polling and choose an interval in whole minutes. To avoid synchronized request
+bursts, every scheduled refresh is randomly jittered by 20% around that interval.
+Results from later polls are added to the current result set.
+
+Opening a preview automatically crosses that listing off. The selected row stays
+visible while you review it, then is hidden when you move on unless **Show
+crossed-off listings** is enabled. Listings can also be saved into persistent,
+user-created lists. Crossed-off IDs, reference paths, saved lists, and listing
+snapshots are stored in `~/.marktplaats-monitor/viewed.json`.
+The **Save to list** dropdown shows every existing list and includes an option to
+create a new list while saving.
+
+A timestamped activity log at the bottom of the window reports searches,
+scheduled polls, matching progress, saved-list actions, warnings, and errors.
+
+The image percentage is a perceptual similarity hint, not an identification or
+proof of ownership. Cropping, a different viewpoint, or a busy background can
+lower the score, so review lower-scoring results too. Please use considerate
+polling intervals and report suspected stolen goods through the appropriate
+marketplace and local-authority channels.
 
 ## Seller
 Query a seller by their ID. This allows fetching the seller's details and

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
+from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
 from typing_extensions import Self
@@ -62,13 +63,31 @@ def fetch_listing_images(listing_id: str) -> list[str]:
     for data in soup.select('script[type="application/ld+json"]'):
         parsed = json.loads(data.text)
         # the list of image URLs is hidden within the product object
-        if type(parsed) is dict and parsed["@type"] == "Product":
-            # actual photos are protocol-relative (//images.marktplaats.com/...).
-            #  Listings without photos have an absolute placeholder URL here
-            #  instead, which we don't want to return as an image.
+        if type(parsed) is dict and parsed.get("@type") == "Product":
+            raw_images = parsed.get("image", [])
+            if isinstance(raw_images, str):
+                raw_images = [raw_images]
             images.extend(
-                f"https:{image}" for image in parsed["image"] if image.startswith("//")
+                image_url
+                for image in raw_images
+                if isinstance(image, str)
+                and (image_url := _normalise_listing_image_url(image)) is not None
             )
             break
 
     return images
+
+
+def _normalise_listing_image_url(url: str) -> str | None:
+    """
+    Accept real Marktplaats photo URLs while excluding placeholder images.
+
+    Returns:
+        An absolute image URL, or ``None`` when the URL is not a listing photo.
+
+    """
+    absolute_url = f"https:{url}" if url.startswith("//") else url
+    parsed = urlparse(absolute_url)
+    if parsed.scheme == "https" and parsed.hostname == "images.marktplaats.com":
+        return absolute_url
+    return None

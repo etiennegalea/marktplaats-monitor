@@ -36,8 +36,17 @@ dependencies = [
 urls.bugs = "https://github.com/jensjeflensje/marktplaats-py/issues"
 urls.homepage = "https://github.com/jensjeflensje/marktplaats-py"
 
+[project.optional-dependencies]
+gui = [
+    "pillow>=10.0",
+]
+
+[project.scripts]
+marktplaats-monitor = "marktplaats.gui:main"
+
 [dependency-groups]
 dev = [
+    "pillow>=10.0",
     "pytest>=8.3.5",
     "responses>=0.26",
 ]
